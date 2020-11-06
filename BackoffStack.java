@@ -1,45 +1,53 @@
-import java.util.*;
-import java.util.concurrent.atomic.*;
+import java.nio.*;
+import java.util.concurrent.locks.*;
 
-// Backoff stack is an unbounded lock-free LIFO linked
-// list, where pushes and pops synchronize at a single
-// location. It is compare-and-set (CAS) atomic operation
-// to provide concurrent access with obstruction freedom.
+// Array stack is a bounded lock-based stack using an
+// array. It uses a common lock for both push and pop
+// operations.
 
-class BackoffStack<T> {
-  AtomicReference<Node<T>> top;
-  static final long MIN_WAIT = 1;
-  static final long MAX_WAIT = 100;
-  // top: top of stack (null if empty)
-  // MIN_WAIT: initial backoff wait range
-  // MAX_WAIT: ultimate backoff wait range
+class ArrayStack<T> {
+  Lock lock;
+  T[] data;
+  int top;
+  // lock: common lock for push, pop
+  // data: array of values in stack
+  // top: top of stack (0 if empty)
 
-  public BackoffStack() {
-    top = new AtomicReference<>(null);
+  @SuppressWarnings("unchecked")
+  public ArrayStack(int capacity) {
+    lock = new ReentrantLock();
+    data = (T[]) new Object[capacity];
+    top = 0;
   }
 
   // 1. Create node for value.
   // 2. Try pushing node to stack.
   // 2a. If successful, return.
   // 2b. Otherwise, backoff and try again.
-  public void push(T x) {
-    long W = MIN_WAIT;
-    Node<T> n = new Node<>(x); // 1
-    while (true) {
-      if (tryPush(n)) return; // 2, 2a
-      else W = backoff(W);    // 2b
+  public void push(T x) throws BufferOverflowException {
+    try {
+    lock.lock();
+    if (top == data.length-1)
+      throw new BufferOverflowException();
+    data[top] = x;
+    top++;
+    } finally {
+      lock.unlock();
     }
   }
 
   // 1. Try popping a node from stack.
   // 1a. If successful, return its value.
   // 1b. Otherwise, backoff and try again.
-  public T pop() throws EmptyStackException {
-    long W = MIN_WAIT;
-    while (true) {
-      Node<T> n = tryPop(); // 1
-      if (n != null) return n.value; // 1a
-      else W = backoff(W);           // 1b
+  public T pop() throws BufferUnderflowException {
+    try {
+    lock.lock();
+    if (top == 0)
+      throw new BufferUnderflowException();
+    top--;
+    return data[top];
+    } finally {
+      lock.unlock();
     }
   }
 
