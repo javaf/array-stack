@@ -2,7 +2,7 @@ import java.util.*;
 
 class Main {
   static Deque<Integer> stack;
-  static BackoffStack<Integer> concurrentStack;
+  static ArrayStack<Integer> concurrentStack;
   static List<Integer>[] poppedValues;
   static int TH = 10, NUM = 1000;
 
@@ -26,7 +26,7 @@ class Main {
 
   // Each safe thread pushes N numbers and pops N, adding
   // them to its own poppedValues for checking; using
-  // BackoffStack.
+  // ArrayStack.
   static Thread safe(int id, int x, int N) {
     return new Thread(() -> {
       String action = "push";
@@ -38,7 +38,8 @@ class Main {
       for (int i=0; i<N; i++)
         poppedValues[id].add(concurrentStack.pop());
       }
-      catch (Exception e) { log(id+": failed "+action); }
+      catch (Exception e) { log(id+": failed "+action);
+      e.printStackTrace(); }
     });
   }
 
@@ -64,15 +65,15 @@ class Main {
   }
 
   @SuppressWarnings("unchecked")
-  static void testThreads(boolean backoff) {
+  static void testThreads(boolean safe) {
     stack = new ArrayDeque<>();
-    concurrentStack = new BackoffStack<>();
+    concurrentStack = new ArrayStack<>(TH*NUM);
     poppedValues = new List[TH];
     for (int i=0; i<TH; i++)
       poppedValues[i] = new ArrayList<>();
     Thread[] threads = new Thread[TH];
     for (int i=0; i<TH; i++) {
-      threads[i] = backoff?
+      threads[i] = safe?
         safe(i, i*NUM, NUM) :
         unsafe(i, i*NUM, NUM);
       threads[i].start();      
@@ -89,7 +90,7 @@ class Main {
     testThreads(false);
     log("Was LIFO? "+wasLIFO(NUM));
     log("");
-    log("Starting "+TH+" threads with backoff stack");
+    log("Starting "+TH+" threads with array stack");
     testThreads(true);
     log("Was LIFO? "+wasLIFO(NUM));
     log("");

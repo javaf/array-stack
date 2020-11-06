@@ -1,66 +1,59 @@
-Backoff stack is an unbounded lock-free LIFO linked
-list, where pushes and pops synchronize at a single
-location. It is compare-and-set (CAS) atomic operation
-to provide concurrent access with obstruction freedom.
+Array stack is a bounded lock-based stack using an
+array. It uses a common lock for both push and pop
+operations.
 
 ```java
 push():
-1. Create node for value.
-2. Try pushing node to stack.
-2a. If successful, return.
-2b. Otherwise, backoff and try again.
+1. Lock stack.
+2. Try push.
+3. Unlock stack.
 ```
 
 ```java
 pop():
-1. Try popping a node from stack.
-1a. If successful, return its value.
-1b. Otherwise, backoff and try again.
+1. Lock stack.
+2. Try pop.
+3. Unlock stack.
 ```
 
 ```java
 tryPush():
-1. Get stack top.
-2. Set node's next to top.
-3. Try push node at top (CAS).
+1. Ensure stack is not full
+2. Save data at top.
+3. Increment top.
 ```
 
 ```java
 tryPop():
-1. Get stack top, and ensure stack not empty.
-2. Try pop node at top, and set top to next (CAS).
-```
-
-```java
-backoff():
-1. Get a random wait duration.
-2. Sleep for the duration.
-3. Double the max random wait duration.
+1. Ensure stack is not empty.
+2. Decrement top.
+3. Return data at top.
 ```
 
 ```bash
 ## OUTPUT
 Starting 10 threads with sequential stack
+7: failed pop
 1: failed pop
-3: failed pop
-4: failed pop
-1: popped 2/1000 values
-1: has duplicate value 9999
-1: has duplicate value 9998
-3: popped 79/1000 values
-3: has duplicate value 3761
-4: popped 886/1000 values
+5: failed pop
+8: failed pop
+9: failed pop
+1: popped 0/1000 values
+5: popped 158/1000 values
+7: popped 0/1000 values
+8: popped 0/1000 values
+9: popped 31/1000 values
 Was LIFO? false
 
-Starting 10 threads with backoff stack
+Starting 10 threads with array stack
 Was LIFO? true
 ```
 
-See [BackoffStack.java] for code, [Main.java] for test, and [repl.it] for output.
+See [ArrayStack.java] for code, [Main.java] for test, and [repl.it] for output.
 
-[BackoffStack.java]: https://repl.it/@wolfram77/backoff-stack#BackoffStack.java
-[Main.java]: https://repl.it/@wolfram77/backoff-stack#Main.java
-[repl.it]: https://backoff-stack.wolfram77.repl.run
+[ArrayStack.java]: https://repl.it/@wolfram77/array-stack#ArrayStack.java
+[Main.java]: https://repl.it/@wolfram77/array-stack#Main.java
+[repl.it]: https://array-stack.wolfram77.repl.run
 
 
 ### references
