@@ -2,6 +2,11 @@ Array stack is a bounded lock-based stack using an
 array. It uses a common lock for both push and pop
 operations.
 
+> **Course**: [Concurrent Data Structures], Monsoon 2020\
+> **Taught by**: Prof. Govindarajulu Regeti
+
+[Concurrent Data Structures]: https://github.com/iiithf/concurrent-data-structures
+
 ```java
 push():
 1. Lock stack.
